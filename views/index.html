@@ -1,0 +1,166 @@
+<html>
+  <head>
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css?family=Lexend+Deca&display=swap');
+      body {
+        text-align: center;
+        background-color: #5e778a;
+        border-style: solid;
+        border-color: #708a9e;
+        color: white;
+        font-family: 'Lexend Deca', sans-serif;
+      }
+      #title {
+        background-color: #708a9e;
+        font-size: 20px;
+      }
+      #Senddiv {
+        position: absolute;
+        top: 80%;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      #PMdiv {
+        position: absolute;
+        bottom: 10%;
+        right: 10%;
+        background-color: #708a9e;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="title">
+    <h4>
+      Chatr
+    </h4>
+    </div>
+    <div id="Joindiv">
+      <button id="Join">
+        Join
+      </button><br>
+      <button id="info">
+        Get info
+      </button><br>
+      <button id="clear">
+        clear
+      </button>
+    </div>
+    <div id="logdiv">
+    <ul id="log"></ul>
+    </div>
+    <div id="Senddiv">
+      <form action="" id="Send">
+        Message<input id="Message"><button>
+        Send
+        </button>
+      </form>
+    </div>
+    <div id="PMdiv">
+      <form id="PM">
+        PM<br>
+        UserID<input id="UserID"><br>
+        Message<input id="PMmessage">
+        <button>
+          Send
+        </button>
+      </form>
+    </div>
+  </body>
+  <script>
+    function Log(owo){
+      $('#log').append($('<li>').text(owo));
+    }
+  </script>
+  <script src="/socket.io/socket.io.js"></script>
+<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+<script>
+  $(function () {
+    var socket = io();
+    $('#Join').click(function(){
+      swal({
+        title: 'Room',
+        content: "input",
+      }).then(function (room) {
+        swal({
+          title: "Username",
+          content: "input",
+        }).then(function (Username){
+          var out = {
+            Username: Username,
+            Room: room
+          }
+          socket.emit("JoinRoom", out)
+        })
+      })
+    })
+    socket.on("RoomStatus", function(data){
+      if (data == false) {
+        swal("Error")
+      }else{
+        var Username = data.Username
+        var Room = data.Room
+        Log("Joined "+Room+" as "+Username)
+      }
+      })
+    $("#Send").submit(function(e){
+      e.preventDefault();
+      socket.emit("SendMessage", $("#Message").val())
+      $("#Message").val("")
+      console.log("Message sent!")
+      return false
+    })
+    socket.on("Messager", function(data){
+      console.log("Message recived")
+      Log(data.Username+" : "+data.Message)
+    })
+    socket.on("senderror", function(data){
+      swal(data)
+    })
+    $("#PM").submit(function(e){
+      e.preventDefault();
+      var out = {
+        UserID: $("#UserID").val(),
+        Message: $("#PMmessage").val()
+      }
+      $("#UserID").val('')
+      $("#PMmessage").val('')
+      socket.emit("SendPM", out)
+    })
+    socket.on("PMsending", function(data){
+      if (data.sender == undefined) {
+        Log("PM from "+data.senderID+" : "+data.message)
+      } else {
+        Log("PM from "+data.sender+" ("+data.senderID+") : "+data.message)
+      }
+    })
+    $("#info").click(function(e){
+      e.preventDefault();
+      socket.emit("GetInfo", true)
+    })
+    socket.on("InfoGet", function(data){
+      if (data.Username == undefined) {
+        swal("Info \n UserID: "+data.ID)
+      } else {
+        swal("Info:\n Username: "+data.Username+"\n Room: "+data.Room+"\n UserID: "+data.ID)
+      }
+    })
+    $("#clear").click(function(e){
+      e.preventDefault();
+      swal("Clear logs?", {
+      buttons: {
+        cancel: "No!",
+        catch: {
+          text: "Yes!",
+          value: "owo",
+        },
+      },
+    }).then(function(value){
+        if (value == "owo") {
+          document.getElementById("log").innerHTML = ""
+        }
+      })
+  })
+});
+</script>
+</html>
